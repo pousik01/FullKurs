@@ -1,0 +1,47 @@
+services: # Атрибут 'version' отсутствует
+  # 1. База данных (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: kurs_db
+    restart: always
+    environment:
+      POSTGRES_DB: kursdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # 2. Backend (Django)
+  backend:
+    build: ./BackEnd # Использует KursProject/Dockerfile
+    container_name: django_backend
+    restart: always
+    # Дожидаемся запуска БД
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    environment:
+      # Настройки Django, которые нужно прочитать в settings.py
+      DB_NAME: kursdb
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_HOST: db # Имя сервиса БД!
+      DB_PORT: 5432
+      ALLOWED_HOSTS: "localhost,127.0.0.1,backend"
+
+  # 3. Frontend (Vue + Nginx)
+  frontend:
+    build: ./FrontEnd/client # Использует KursFrontVue/Dockerfile
+    container_name: vue_frontend
+    restart: always
+    depends_on:
+      - backend
+    # Приложение будет доступно на порту 80 вашего хоста
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
